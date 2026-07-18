@@ -1,11 +1,18 @@
 import {db} from '../db/index.js'
 import {usersTable} from '../models/index.js';
+import { eq } from 'drizzle-orm';
+export async function getUserByEmail(email) {
+  const [existingUser] = await db
+    .select({
+      id: usersTable.id,
+      firstname: usersTable.firstname,
+      lastname: usersTable.lastname,
+      email: usersTable.email,
+      salt: usersTable.salt,
+      password:usersTable.password,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.email, email));
 
-export function hashPasswordWithSalt(password) {
-  const salt = randomBytes(256).toString('hex');
-  const hashedPassword = createHmac('sha256', salt)
-    .update(password)
-    .digest('hex');
-
-  return { salt, password: hashedPassword };
+  return existingUser;
 }
