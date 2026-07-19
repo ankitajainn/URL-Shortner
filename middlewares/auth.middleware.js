@@ -11,7 +11,7 @@ export function authenticationMiddleware(req, res, next) {
 
     if (!authHeader) return next();
 
-    if(!authHeader.statersWith('Bearer'))
+    if(!authHeader.startsWith('Bearer'))
         return res
             .status(400)
             .json({error:'Authorisation header must start with Bearer'});
@@ -22,5 +22,16 @@ export function authenticationMiddleware(req, res, next) {
     const payload=validateUserToken(token)
 
     req.user=payload
+    next();
+}
+
+
+export function ensureAuthenticated(req,res,next){
+    if(!req.user || !req.user.id){
+        return res
+      .status(401)
+      .json({ error: 'You must be logged in to access this resource' });
+
+    }
     next();
 }
