@@ -1,6 +1,11 @@
 ﻿# URL-Shortner
 
 1)To open drizzle ORM
-  db:studio 
+<br>
+    pnpm db:studio 
+  <br>
+  <br>
+  <br>
 2)To run the server
-  pnpm dev
+<br>
+    pnpm dev
