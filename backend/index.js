@@ -18,8 +18,6 @@ app.use(cors({
 }));
 
 
-// Handle OPTIONS preflight explicit fallback
-app.options('*', cors());
 
 app.use(express.json());
 app.use(authenticationMiddleware)
