@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+.pnpm/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Next.js & Build Outputs
+.next/
+dist/
+out/
+
+# System / OS
+.DS_Store
+Thumbs.db
