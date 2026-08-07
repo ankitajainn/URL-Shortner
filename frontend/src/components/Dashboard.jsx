@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../api.js'
 
+function shortUrlLabel(shortCode) {
+  return `${api.base.replace(/^https?:\/\//, '')}/${shortCode}`
+}
+
 export default function Dashboard({ token, onLogout }) {
   const [urls, setUrls] = useState([])
   const [codesLoading, setCodesLoading] = useState(true)
@@ -155,8 +159,16 @@ export default function Dashboard({ token, onLogout }) {
                 <div className="link-row" key={item.id}>
                   <div className="link-main">
                     <span className="code-chip mono">{item.shortCode}</span>
+                    <a
+                      className="short-url mono"
+                      href={`${api.base}/${item.shortCode}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {shortUrlLabel(item.shortCode)}
+                    </a>
                     <span className="target-url" title={item.targetURL}>
-                      {item.targetURL}
+                      → {item.targetURL}
                     </span>
                   </div>
                   <div className="link-actions">

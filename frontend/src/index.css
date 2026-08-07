@@ -477,8 +477,21 @@ a {
   padding: 2px 8px;
 }
 
-.target-url {
+.short-url {
   font-size: 13px;
+  color: var(--accent-2);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.short-url:hover {
+  text-decoration: underline;
+}
+
+.target-url {
+  font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
