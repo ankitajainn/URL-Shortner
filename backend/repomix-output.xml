@@ -1,0 +1,564 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+db/index.js
+docker-compose.yml
+drizzle.config.js
+index.js
+middlewares/auth.middleware.js
+models/index.js
+models/url.model.js
+models/user.model.js
+package.json
+pnpm-workspace.yaml
+README.md
+routes/url.routes.js
+routes/user.routes.js
+services/user.service.js
+utils/hash.js
+utils/token.js
+validations/request.validation.js
+validations/token.validation.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="db/index.js">
+import 'dotenv/config';
+import { drizzle } from 'drizzle-orm/node-postgres';
+
+export const db = drizzle(process.env.DATABASE_URL);
+export default db;
+</file>
+
+<file path="docker-compose.yml">
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:
+</file>
+
+<file path="drizzle.config.js">
+import 'dotenv/config';
+import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  out: './drizzle',
+  schema: './models/index.js',
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: process.env.DATABASE_URL,
+  },
+});
+</file>
+
+<file path="index.js">
+import express from 'express'
+import 'dotenv/config'
+import {authenticationMiddleware} from './middlewares/auth.middleware.js'
+import cors from 'cors';
+import userRouter from './routes/user.routes.js'
+import urlRouter from './routes/url.routes.js'
+
+const app=express();
+const PORT=process.env.PORT ?? 8000;
+
+
+// 2. Enable CORS for your frontend
+app.use(cors({
+    origin: '*', // Allows localhost during development & production domains
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
+
+
+app.use(express.json());
+app.use(authenticationMiddleware)
+
+app.get('/',(req,res)=>{
+    return res.json({status:'Server is up here'});
+});
+
+app.use(urlRouter);
+app.use('/user',userRouter);
+
+
+app.listen(PORT,()=>{
+    console.log(`Server in on ${PORT}`);
+})
+</file>
+
+<file path="middlewares/auth.middleware.js">
+import {validateUserToken} from '../utils/token.js'
+
+
+/*
+* @param {import("express").Request} req
+* @param {import("express").Response} res
+* @param {import("express").NextFunction} next
+*/
+export function authenticationMiddleware(req, res, next) {
+    const authHeader = req.headers['authorization']
+
+    if (!authHeader) return next();
+
+    if(!authHeader.startsWith('Bearer'))
+        return res
+            .status(400)
+            .json({error:'Authorisation header must start with Bearer'});
+
+
+    const [_, token]=authHeader.split(' ')//Bearer <TOKEN>
+
+    const payload=validateUserToken(token)
+
+    req.user=payload
+    next();
+}
+
+
+export function ensureAuthenticated(req,res,next){
+    if(!req.user || !req.user.id){
+        return res
+      .status(401)
+      .json({ error: 'You must be logged in to access this resource' });
+
+    }
+    next();
+}
+</file>
+
+<file path="models/index.js">
+export {usersTable} from './user.model.js'
+
+export {urlsTable} from './url.model.js'
+</file>
+
+<file path="models/url.model.js">
+import { pgTable, uuid, varchar, text, timestamp } from 'drizzle-orm/pg-core';
+import {usersTable} from './user.model.js'
+
+
+export const urlsTable = pgTable('urls', {
+  id: uuid().primaryKey().defaultRandom(),
+  shortCode: varchar('code', { length: 155 }).notNull().unique(),
+  targetURL: text('target_url').notNull(),
+
+  userId: uuid('user_id')
+  .references(()=>usersTable.id)
+  .notNull(),
+  
+   createdAt:timestamp('created_at').defaultNow().notNull(),
+   updatedAt:timestamp('updated_at').$onUpdate(()=>new Date()),
+  
+});
+</file>
+
+<file path="models/user.model.js">
+import {  pgTable,uuid , varchar,text, timestamp } from "drizzle-orm/pg-core";
+
+export const usersTable = pgTable("users", {
+  id: uuid().primaryKey().defaultRandom(),
+  firstname: varchar('first_name',{length :55}).notNull(),
+  lastname: varchar('last_name',{length :55}),
+  email:varchar({length:255}).notNull().unique(),
+  password: text().notNull(),
+   salt: text().notNull(),
+
+   createdAt:timestamp('created_at').defaultNow().notNull(),
+   updatedAt:timestamp('updated_at').$onUpdate(()=>new Date()),
+  
+});
+</file>
+
+<file path="package.json">
+{
+  "name": "URL_Shortner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.12.0",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/express": "~4.17.25",
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "1.0.0-rc.3",
+    "tsx": "^4.23.1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "1.0.0-rc.4",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "nanoid": "^6.0.0",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  }
+}
+</file>
+
+<file path="pnpm-workspace.yaml">
+allowBuilds:
+  esbuild: true
+</file>
+
+<file path="README.md">
+# URL-Shortner
+
+1)To open drizzle ORM
+<br>
+    pnpm db:studio 
+  <br>
+  <br>
+  <br>
+2)To run the server
+<br>
+    pnpm dev
+</file>
+
+<file path="routes/url.routes.js">
+import express from 'express';
+import {shortenPostRequestBodySchema} from '../validations/request.validation.js';
+import {nanoid} from 'nanoid'
+import { eq,and } from 'drizzle-orm';
+import {db} from '../db/index.js'
+import {urlsTable} from '../models/index.js'
+import {ensureAuthenticated} from '../middlewares/auth.middleware.js'
+
+const router = express.Router();
+
+
+
+router.post('/shorten',ensureAuthenticated, async function (req, res) {
+  
+
+
+    const validationResult= await shortenPostRequestBodySchema
+                                    .safeParseAsync(req.body);
+
+    if(validationResult.error){
+        return res.status(400).json({error:validationResult.error});
+
+    }
+    const {url,code} = validationResult.data;
+ 
+    const shortCode=code??nanoid(6)
+
+    const [result]=await db.insert(urlsTable).values({
+        shortCode,
+        targetURL:url,
+        userId:req.user.id,
+    }).returning({
+        id:urlsTable.id,
+        shortCode:urlsTable.shortCode,
+        targetURL:urlsTable.targetURL,
+    });
+    return res
+        .status(201)
+        .json({
+            id:result.id,
+            shortCode:result.shortCode,
+            targetURL:result.targetURL,
+        })
+});
+
+router.get('/codes',ensureAuthenticated,async function(req,res){
+    const codes=await db
+    .select()
+    .from(urlsTable)
+    .where(eq(urlsTable.userId, req.user.id))
+
+    return res.json({codes});
+});
+
+
+router.get('/:shortCode',async function(req,res){
+    const code=req.params.shortCode;
+    const [result]=await db
+        .select({
+            targetURL:urlsTable.targetURL,
+        })
+        .from(urlsTable)
+        .where(eq(urlsTable.shortCode,code));
+
+        if(!result){
+            return res.status(404).json({error:'Invalid URL'});
+        }
+        return res.redirect(result.targetURL);
+})
+
+router.delete('/:id', ensureAuthenticated, async function (req, res) {
+  const id = req.params.id;
+   await db
+    .delete(urlsTable)
+    .where(and(eq(urlsTable.id, id), eq(urlsTable.userId, req.user.id)));
+
+  return res.status(200).json({ deleted: true });
+});
+
+
+export default router;
+</file>
+
+<file path="routes/user.routes.js">
+import express from 'express';
+import {db} from '../db/index.js'
+import {usersTable} from '../models/index.js';
+import {randomBytes, createHmac} from 'crypto'
+import {signupPostRequestBodySchema,loginPostRequestBodySchema} from '../validations/request.validation.js'
+import { hashPasswordWithSalt } from '../utils/hash.js'
+import {getUserByEmail} from '../services/user.service.js'
+import { hash } from 'zod/mini';
+
+import {createUserToken} from '../utils/token.js'
+
+
+
+const router=express.Router();
+
+router.post('/signup',async(req,res)=>{
+    const validationResult =await signupPostRequestBodySchema.safeParseAsync(
+        req.body
+    );
+
+
+        if(validationResult.error){
+            return res.status(400).json({error:validationResult.error.format()});
+        }
+
+        const {firstname,lastname,email,password}=validationResult.data;
+    
+
+    
+
+        const existingUser  =await getUserByEmail(email);
+
+        if(existingUser){
+            return res
+                .status(400)
+                .json({error:`User with email ${email} already existed`})
+        }
+
+        const {salt,password : hashedPassword }=hashPasswordWithSalt(password)
+
+
+
+        
+        const [user]=await db.insert(usersTable).values({
+            email,
+            firstname,
+            lastname,
+            salt,
+            password:hashedPassword,
+
+
+        }).returning({id:usersTable.id});
+
+        return res.status(201).json({data:{userId:user.id}});
+})
+
+
+router.post('/login', async (req, res) => {
+  const validationResult = await loginPostRequestBodySchema.safeParseAsync(
+    req.body
+  );
+
+  if (validationResult.error) {
+    return res.status(400).json({ error: validationResult.error });
+  }
+  const { email,password} =validationResult.data;
+
+  const user =await getUserByEmail(email);
+
+  if(!user){
+    return res
+        .status(404)
+        .json({error: `User with email ${email} does not exits`});
+          
+  }
+
+  const {password:hashedPassword}=hashPasswordWithSalt(password,user.salt)
+
+  if(user.password!==hashedPassword){
+    return res.status(400).json({error:'Invalid password'});
+  }
+
+
+    // const token=jwt.sign({id:user.id},process.env.JWT_SECRET);
+    const token= await createUserToken({id:user.id});
+
+    return res.json({token});
+});
+
+
+
+
+export default router;
+</file>
+
+<file path="services/user.service.js">
+import {db} from '../db/index.js'
+import {usersTable} from '../models/index.js';
+import { eq } from 'drizzle-orm';
+export async function getUserByEmail(email) {
+  const [existingUser] = await db
+    .select({
+      id: usersTable.id,
+      firstname: usersTable.firstname,
+      lastname: usersTable.lastname,
+      email: usersTable.email,
+      salt: usersTable.salt,
+      password:usersTable.password,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.email, email));
+
+  return existingUser;
+}
+</file>
+
+<file path="utils/hash.js">
+import {randomBytes, createHmac} from 'crypto'
+
+export function hashPasswordWithSalt(password,userSalt =undefined) {
+  const salt = userSalt??randomBytes(256).toString('hex');
+  const hashedPassword = createHmac('sha256', salt)
+    .update(password)
+    .digest('hex');
+
+  return { salt, password: hashedPassword };
+}
+</file>
+
+<file path="utils/token.js">
+import jwt from 'jsonwebtoken';
+import {userTokenSchema} from '../validations/token.validation.js'
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+export async function createUserToken(payload) {
+    const validationResult =userTokenSchema.safeParse(payload)
+
+if(validationResult.error) throw new Error(validationResult.error.messge)
+
+    const payloadValidatedResult=validationResult.data;
+
+  const token = jwt.sign(payload, JWT_SECRET);
+  return token;
+}
+
+export function validateUserToken(token){
+    try{
+        const payload=jwt.verify(token,JWT_SECRET)
+        return payload;
+    }
+    catch(error){
+        return null;
+    }
+    const payload=jwt.verify(token,JWT_SECRET)
+}
+</file>
+
+<file path="validations/request.validation.js">
+import {z} from 'zod'
+
+export const signupPostRequestBodySchema = z.object({
+  firstname: z.string(),
+  lastname: z.string().optional(),
+  email: z.string().email(),
+  password: z.string().min(3),
+  
+});
+
+
+export const loginPostRequestBodySchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(3),
+})
+
+
+export const shortenPostRequestBodySchema= z.object({
+  url: z.string().url(),
+  code:z.string().optional(),
+})
+</file>
+
+<file path="validations/token.validation.js">
+import {z} from 'zod'
+
+
+export const userTokenSchema=z.object({
+    id:z.string(),
+});
+</file>
+
+</files>
