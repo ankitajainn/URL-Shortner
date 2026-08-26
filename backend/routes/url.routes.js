@@ -18,39 +18,29 @@ router.post('/shorten',ensureAuthenticated, async function (req, res) {
 
     const shortCode=code??nanoid(6)
 
-    try {
-        const [result]=await db.insert(urlsTable).values({
-            shortCode,
-            targetURL:url,
-            userId:req.user.id,
-        }).returning({
-            id:urlsTable.id,
-            shortCode:urlsTable.shortCode,
-            targetURL:urlsTable.targetURL,
-        });
+try {
+    const [result] = await db.insert(urlsTable).values({
+        shortCode,
+        targetURL: url,
+        userId: req.user.id,
+    }).returning({
+        id: urlsTable.id,
+        shortCode: urlsTable.shortCode,
+        targetURL: urlsTable.targetURL,
+    });
 
-        return res
-            .status(201)
-            .json({
-                id:result.id,
-                shortCode:result.shortCode,
-                targetURL:result.targetURL,
-            })
-    }
-    // catch (err) {
-    //     if (err.code === '23505') { // Postgres unique_violation
-    //         return res.status(409).json({ error: 'This short code is already taken. Try another.' });
-    //     }
-    //     console.error(err);
-    //     return res.status(500).json({ error: 'Something went wrong.' });
-    catch (err) {
-    console.error('FULL ERROR:', JSON.stringify(err, null, 2));
-    if (err.code === '23505') {
+    return res.status(201).json({
+        id: result.id,
+        shortCode: result.shortCode,
+        targetURL: result.targetURL,
+    });
+} catch (err) {
+    if (err.cause?.code === '23505') {
         return res.status(409).json({ error: 'This short code is already taken. Try another.' });
     }
     console.error(err);
     return res.status(500).json({ error: 'Something went wrong.' });
-    }
+}
 });
 
 router.get('/codes',ensureAuthenticated,async function(req,res){
