@@ -5,42 +5,44 @@ import { eq,and } from 'drizzle-orm';
 import {db} from '../db/index.js'
 import {urlsTable} from '../models/index.js'
 import {ensureAuthenticated} from '../middlewares/auth.middleware.js'
-
 const router = express.Router();
 
-
-
 router.post('/shorten',ensureAuthenticated, async function (req, res) {
-  
-
 
     const validationResult= await shortenPostRequestBodySchema
                                     .safeParseAsync(req.body);
-
     if(validationResult.error){
         return res.status(400).json({error:validationResult.error});
-
     }
     const {url,code} = validationResult.data;
- 
+
     const shortCode=code??nanoid(6)
 
-    const [result]=await db.insert(urlsTable).values({
-        shortCode,
-        targetURL:url,
-        userId:req.user.id,
-    }).returning({
-        id:urlsTable.id,
-        shortCode:urlsTable.shortCode,
-        targetURL:urlsTable.targetURL,
-    });
-    return res
-        .status(201)
-        .json({
-            id:result.id,
-            shortCode:result.shortCode,
-            targetURL:result.targetURL,
-        })
+    try {
+        const [result]=await db.insert(urlsTable).values({
+            shortCode,
+            targetURL:url,
+            userId:req.user.id,
+        }).returning({
+            id:urlsTable.id,
+            shortCode:urlsTable.shortCode,
+            targetURL:urlsTable.targetURL,
+        });
+
+        return res
+            .status(201)
+            .json({
+                id:result.id,
+                shortCode:result.shortCode,
+                targetURL:result.targetURL,
+            })
+    } catch (err) {
+        if (err.code === '23505') { // Postgres unique_violation
+            return res.status(409).json({ error: 'This short code is already taken. Try another.' });
+        }
+        console.error(err);
+        return res.status(500).json({ error: 'Something went wrong.' });
+    }
 });
 
 router.get('/codes',ensureAuthenticated,async function(req,res){
@@ -48,10 +50,8 @@ router.get('/codes',ensureAuthenticated,async function(req,res){
     .select()
     .from(urlsTable)
     .where(eq(urlsTable.userId, req.user.id))
-
     return res.json({codes});
 });
-
 
 router.get('/:shortCode',async function(req,res){
     const code=req.params.shortCode;
@@ -61,7 +61,6 @@ router.get('/:shortCode',async function(req,res){
         })
         .from(urlsTable)
         .where(eq(urlsTable.shortCode,code));
-
         if(!result){
             return res.status(404).json({error:'Invalid URL'});
         }
@@ -70,12 +69,100 @@ router.get('/:shortCode',async function(req,res){
 
 router.delete('/:id', ensureAuthenticated, async function (req, res) {
   const id = req.params.id;
-   await db
+
+  const deletedRows = await db
     .delete(urlsTable)
-    .where(and(eq(urlsTable.id, id), eq(urlsTable.userId, req.user.id)));
+    .where(and(eq(urlsTable.id, id), eq(urlsTable.userId, req.user.id)))
+    .returning({ id: urlsTable.id });
+
+  if (deletedRows.length === 0) {
+    return res.status(404).json({ error: 'URL not found or you do not have permission to delete it.' });
+  }
 
   return res.status(200).json({ deleted: true });
 });
 
-
 export default router;
+
+
+// import express from 'express';
+// import {shortenPostRequestBodySchema} from '../validations/request.validation.js';
+// import {nanoid} from 'nanoid'
+// import { eq,and } from 'drizzle-orm';
+// import {db} from '../db/index.js'
+// import {urlsTable} from '../models/index.js'
+// import {ensureAuthenticated} from '../middlewares/auth.middleware.js'
+
+// const router = express.Router();
+
+
+
+// router.post('/shorten',ensureAuthenticated, async function (req, res) {
+  
+
+
+//     const validationResult= await shortenPostRequestBodySchema
+//                                     .safeParseAsync(req.body);
+
+//     if(validationResult.error){
+//         return res.status(400).json({error:validationResult.error});
+
+//     }
+//     const {url,code} = validationResult.data;
+ 
+//     const shortCode=code??nanoid(6)
+
+//     const [result]=await db.insert(urlsTable).values({
+//         shortCode,
+//         targetURL:url,
+//         userId:req.user.id,
+//     }).returning({
+//         id:urlsTable.id,
+//         shortCode:urlsTable.shortCode,
+//         targetURL:urlsTable.targetURL,
+//     });
+//     return res
+//         .status(201)
+//         .json({
+//             id:result.id,
+//             shortCode:result.shortCode,
+//             targetURL:result.targetURL,
+//         })
+// });
+
+// router.get('/codes',ensureAuthenticated,async function(req,res){
+//     const codes=await db
+//     .select()
+//     .from(urlsTable)
+//     .where(eq(urlsTable.userId, req.user.id))
+
+//     return res.json({codes});
+// });
+
+
+// router.get('/:shortCode',async function(req,res){
+//     const code=req.params.shortCode;
+//     const [result]=await db
+//         .select({
+//             targetURL:urlsTable.targetURL,
+//         })
+//         .from(urlsTable)
+//         .where(eq(urlsTable.shortCode,code));
+
+//         if(!result){
+//             return res.status(404).json({error:'Invalid URL'});
+//         }
+//         return res.redirect(result.targetURL);
+// })
+
+// router.delete('/:id', ensureAuthenticated, async function (req, res) {
+//   const id = req.params.id;
+//    await db
+//     .delete(urlsTable)
+//     .where(and(eq(urlsTable.id, id), eq(urlsTable.userId, req.user.id)));
+
+//   return res.status(200).json({ deleted: true });
+// });
+
+
+// export default router;
