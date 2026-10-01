@@ -14,7 +14,7 @@ app.use(cors({
     origin: '*', // Allows localhost during development & production domains
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true // Cookies allow karne ke liye
 }));
 
 
