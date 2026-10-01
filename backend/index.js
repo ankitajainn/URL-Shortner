@@ -17,7 +17,7 @@ const PORT=process.env.PORT ?? 8000;
 //   credentials: true // Cookies allow karne ke liye
 // }));
 // const express = require('express');
-const cors = require('cors');
+// const cors = require('cors');
 // const app = express();
 
 // Whitelist Domains Define Karein
