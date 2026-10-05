@@ -8,11 +8,10 @@ import urlRouter from './routes/url.routes.js';
 const app = express();
 const PORT = process.env.PORT ?? 8000;
 
-// Whitelist Domains (Ensure NO trailing slashes here)
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
-  'https://url-shortner-ruddy-two.vercel.app' // Removed trailing slash '/'
+  'https://url-shortner-ruddy-two.vercel.app'
 ];
 
 const corsOptions = {
@@ -28,11 +27,9 @@ const corsOptions = {
   credentials: true
 };
 
-// Apply CORS middleware
+// Handle CORS
 app.use(cors(corsOptions));
-
-// Explicitly handle Preflight OPTIONS requests across all routes
-app.options('*', cors(corsOptions));
+app.options('{*path}', cors(corsOptions)); // Fixed wildcard syntax for Express v5
 
 app.use(express.json());
 
@@ -46,7 +43,6 @@ app.use('/user', userRouter);
 app.listen(PORT, () => {
   console.log(`Server is on ${PORT}`);
 });
-
 // import express from 'express'
 // import 'dotenv/config'
 // import {authenticationMiddleware} from './middlewares/auth.middleware.js'
