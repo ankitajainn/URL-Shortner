@@ -45,7 +45,7 @@ app.use(cors(corsOptions));
 
 
 app.use(express.json());
-app.use(authenticationMiddleware)
+// app.use(authenticationMiddleware)
 
 app.get('/',(req,res)=>{
     return res.json({status:'Server is up here'});
