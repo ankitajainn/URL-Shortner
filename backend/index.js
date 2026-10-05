@@ -32,6 +32,7 @@ app.use(cors(corsOptions));
 app.options('{*path}', cors(corsOptions)); // Fixed wildcard syntax for Express v5
 
 app.use(express.json());
+app.use(authenticationMiddleware)
 
 app.get('/', (req, res) => {
   return res.json({ status: 'Server is up here' });
